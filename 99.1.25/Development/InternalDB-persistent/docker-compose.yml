@@ -17,7 +17,7 @@ secrets:
   VSI_SSL_CERTIFICATE_KEY_PASSWORD:
     file: ${SSL_CERTIFICATE_KEY_PASSWORD_PATH}
 services:
-  allDbs:
+  applicationCollectionsDb:
     deploy:
       restart_policy:
         condition: on-failure
@@ -25,16 +25,28 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/applicationCollectionsDb:/var/lib/postgresql/data
+  applicationRunsDb:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationRunsDb:/var/lib/postgresql/data
   applicationcollections:
     depends_on:
-    - allDbs
+    - applicationCollectionsDb
     - identityserver
     - messagebroker
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      DB__ConnectionString: Server=allDbs;Database=ApplicationCollections;Username=postgres;
+      DB__ConnectionString: Server=applicationCollectionsDb;Database=ApplicationCollections;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applicationcollections
       IdentityProvider__Authority: http://identityserver/identityServer
@@ -48,14 +60,14 @@ services:
     restart: always
   applicationruns:
     depends_on:
-    - allDbs
+    - applicationRunsDb
     - identityserver
     - messagebroker
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      DB__ConnectionString: Server=allDbs;Database=ApplicationRuns;Username=postgres;
+      DB__ConnectionString: Server=applicationRunsDb;Database=ApplicationRuns;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applicationruns
       IdentityProvider__Authority: http://identityserver/identityServer
@@ -69,14 +81,14 @@ services:
     restart: always
   applications:
     depends_on:
-    - allDbs
+    - applicationsDb
     - identityserver
     - messagebroker
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      DB__ConnectionString: Server=allDbs;Database=Applications;Username=postgres;
+      DB__ConnectionString: Server=applicationsDb;Database=Applications;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applications
       IdentityProvider__Authority: http://identityserver/identityServer
@@ -88,6 +100,16 @@ services:
     - front
     - messaging
     restart: always
+  applicationsDb:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationsDb:/var/lib/postgresql/data
   comparisonengine:
     deploy:
       restart_policy:
@@ -141,9 +163,19 @@ services:
     secrets:
     - ADMIN_PASSWORD
     - USER_PASSWORD
+  imageStorageDb:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/imageStorageDb:/var/lib/postgresql/data
   imagestorage:
     depends_on:
-    - allDbs
+    - imageStorageDb
     - identityserver
     - messagebroker
     deploy:
@@ -151,7 +183,7 @@ services:
         condition: on-failure
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=allDbs;Database=ImageStorage;Username=postgres;
+      DB__ConnectionString: Server=imageStorageDb;Database=ImageStorage;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: imagestorage
       IdentityProvider__Authority: http://identityserver/identityServer
@@ -170,7 +202,12 @@ services:
     image: rabbitmq:3.6.12-management
     networks:
     - messaging
+    ports:
+    - 5672:5672
+    - 15672:15672
     restart: always
+    volumes:
+    - ${DB_ROOT}/messagebroker:/var/lib/rabbitmq
   notificationshub:
     depends_on:
     - identityserver
@@ -208,16 +245,26 @@ services:
     restart: always
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
+  referenceImagesDb:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/referenceImagesDb:/var/lib/postgresql/data
   referenceimages:
     depends_on:
-    - allDbs
+    - referenceImagesDb
     - identityserver
     - messagebroker
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      DB__ConnectionString: Server=allDbs;Database=ReferenceImages;Username=postgres;
+      DB__ConnectionString: Server=referenceImagesDb;Database=ReferenceImages;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: referenceimages
       IdentityProvider__Authority: http://identityserver/identityServer
@@ -229,16 +276,26 @@ services:
     - front
     - messaging
     restart: always
+  runHistoryDb:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/runHistoryDb:/var/lib/postgresql/data
   runhistory:
     depends_on:
-    - allDbs
+    - runHistoryDb
     - identityserver
     - messagebroker
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      DB__ConnectionString: Server=allDbs;Database=RunHistory;Username=postgres;
+      DB__ConnectionString: Server=runHistoryDb;Database=RunHistory;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: runhistory
       IdentityProvider__Authority: http://identityserver/identityServer

@@ -1,38 +1,46 @@
 networks:
   databases:
-    driver: overlay
+    driver: bridge
   front:
-    driver: overlay
+    driver: bridge
   messaging:
-    driver: overlay
+    driver: bridge
 secrets:
   ADMIN_PASSWORD:
-    external: true
+    file: ${SSL_CERTIFICATE_KEY_PASSWORD_PATH}
   USER_PASSWORD:
-    external: true
+    file: ${SSL_CERTIFICATE_KEY_PASSWORD_PATH}
   VSI_SSL_CERTIFICATE:
     file: ${SSL_CERTIFICATE_PATH}
   VSI_SSL_CERTIFICATE_KEY:
     file: ${SSL_CERTIFICATE_KEY_PATH}
   VSI_SSL_CERTIFICATE_KEY_PASSWORD:
-    external: true
+    file: ${SSL_CERTIFICATE_KEY_PASSWORD_PATH}
 services:
   applicationCollectionsDb:
     deploy:
       restart_policy:
         condition: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
     image: postgres:9
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/applicationCollectionsDb:/var/lib/postgresql/data/pgdata
   applicationRunsDb:
     deploy:
       restart_policy:
         condition: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
     image: postgres:9
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/applicationRunsDb:/var/lib/postgresql/data/pgdata
   applicationcollections:
     depends_on:
     - applicationCollectionsDb
@@ -100,10 +108,14 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
     image: postgres:9
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/applicationsDb:/var/lib/postgresql/data/pgdata
   comparisonengine:
     deploy:
       restart_policy:
@@ -141,7 +153,6 @@ services:
     - messaging
     ports:
     - ${GATEWAY_PORT}:443
-    - 80:80
     restart: always
     secrets:
     - VSI_SSL_CERTIFICATE
@@ -166,10 +177,14 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
     image: postgres:9
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/imageStorageDb:/var/lib/postgresql/data/pgdata
   imagestorage:
     depends_on:
     - imageStorageDb
@@ -179,6 +194,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
       DB__ConnectionString: Server=imageStorageDb;Database=ImageStorage;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: imagestorage
@@ -199,6 +215,9 @@ services:
     image: rabbitmq:3.6.12-management
     networks:
     - messaging
+    ports:
+    - 5672:5672
+    - 15672:15672
     restart: always
   notificationshub:
     depends_on:
@@ -226,14 +245,29 @@ services:
     - front
     - messaging
     restart: always
+  portainer:
+    command: -d /data -H unix:///var/run/docker.sock --admin-password '$$2y$$05$$DTUYaqFuY0ot0BuUqKE4d.KyQmBzZiUe64rl6QLTYhS/9Nl000vK.'
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: portainer/portainer
+    ports:
+    - 9000:9000
+    restart: always
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
   runHistoryDb:
     deploy:
       restart_policy:
         condition: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
     image: postgres:9
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/runHistoryDb:/var/lib/postgresql/data/pgdata
   runhistory:
     depends_on:
     - runHistoryDb

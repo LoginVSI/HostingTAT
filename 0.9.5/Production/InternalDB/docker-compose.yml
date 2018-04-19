@@ -1,21 +1,21 @@
 networks:
   databases:
-    driver: bridge
+    driver: overlay
   front:
-    driver: bridge
+    driver: overlay
   messaging:
-    driver: bridge
+    driver: overlay
 secrets:
   ADMIN_PASSWORD:
-    file: ${SSL_CERTIFICATE_KEY_PASSWORD_PATH}
+    external: true
   USER_PASSWORD:
-    file: ${SSL_CERTIFICATE_KEY_PASSWORD_PATH}
+    external: true
   VSI_SSL_CERTIFICATE:
     file: ${SSL_CERTIFICATE_PATH}
   VSI_SSL_CERTIFICATE_KEY:
     file: ${SSL_CERTIFICATE_KEY_PATH}
   VSI_SSL_CERTIFICATE_KEY_PASSWORD:
-    file: ${SSL_CERTIFICATE_KEY_PASSWORD_PATH}
+    external: true
 services:
   applicationCollectionsDb:
     deploy:
@@ -25,8 +25,6 @@ services:
     networks:
     - databases
     restart: always
-    volumes:
-    - ${DB_ROOT}/applicationCollectionsDb:/var/lib/postgresql/data
   applicationRunsDb:
     deploy:
       restart_policy:
@@ -35,8 +33,6 @@ services:
     networks:
     - databases
     restart: always
-    volumes:
-    - ${DB_ROOT}/applicationRunsDb:/var/lib/postgresql/data
   applicationcollections:
     depends_on:
     - applicationCollectionsDb
@@ -51,7 +47,7 @@ services:
       Hosting__VirtualDirectory: applicationcollections
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.4'
+      Version__Number: '0.9.5'
     image: loginvsi2/applicationcollections:0.1.1
     networks:
     - databases
@@ -72,7 +68,7 @@ services:
       Hosting__VirtualDirectory: applicationruns
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.4'
+      Version__Number: '0.9.5'
     image: loginvsi2/applicationruns:0.2.1
     networks:
     - databases
@@ -93,7 +89,7 @@ services:
       Hosting__VirtualDirectory: applications
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.4'
+      Version__Number: '0.9.5'
     image: loginvsi2/applications:0.1.1
     networks:
     - databases
@@ -108,8 +104,6 @@ services:
     networks:
     - databases
     restart: always
-    volumes:
-    - ${DB_ROOT}/applicationsDb:/var/lib/postgresql/data
   comparisonengine:
     deploy:
       restart_policy:
@@ -147,6 +141,7 @@ services:
     - messaging
     ports:
     - ${GATEWAY_PORT}:443
+    - 80:80
     restart: always
     secrets:
     - VSI_SSL_CERTIFICATE
@@ -159,7 +154,7 @@ services:
     environment:
       Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
       Hosting__VirtualDirectory: identityserver
-      Version__Number: '0.9.4'
+      Version__Number: '0.9.5'
     image: loginvsi2/identityserver:0.1.2
     networks:
     - front
@@ -175,8 +170,6 @@ services:
     networks:
     - databases
     restart: always
-    volumes:
-    - ${DB_ROOT}/imageStorageDb:/var/lib/postgresql/data
   imagestorage:
     depends_on:
     - imageStorageDb
@@ -186,13 +179,12 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
       DB__ConnectionString: Server=imageStorageDb;Database=ImageStorage;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: imagestorage
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.4'
+      Version__Number: '0.9.5'
     image: loginvsi2/imagestorage:0.2.5
     networks:
     - databases
@@ -207,9 +199,6 @@ services:
     image: rabbitmq:3.6.12-management
     networks:
     - messaging
-    ports:
-    - 5672:5672
-    - 15672:15672
     restart: always
   notificationshub:
     depends_on:
@@ -237,17 +226,6 @@ services:
     - front
     - messaging
     restart: always
-  portainer:
-    command: -d /data -H unix:///var/run/docker.sock --admin-password '$$2y$$05$$DTUYaqFuY0ot0BuUqKE4d.KyQmBzZiUe64rl6QLTYhS/9Nl000vK.'
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: portainer/portainer
-    ports:
-    - 9000:9000
-    restart: always
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
   runHistoryDb:
     deploy:
       restart_policy:
@@ -256,8 +234,6 @@ services:
     networks:
     - databases
     restart: always
-    volumes:
-    - ${DB_ROOT}/runHistoryDb:/var/lib/postgresql/data
   runhistory:
     depends_on:
     - runHistoryDb
@@ -272,7 +248,7 @@ services:
       Hosting__VirtualDirectory: runhistory
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.4'
+      Version__Number: '0.9.5'
     image: loginvsi2/runhistory:0.1.0
     networks:
     - databases

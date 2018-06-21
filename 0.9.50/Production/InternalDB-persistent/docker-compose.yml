@@ -8,8 +8,6 @@ networks:
 secrets:
   ADMIN_PASSWORD:
     external: true
-  ENGINE_SECRET:
-    external: true
   USER_PASSWORD:
     external: true
   VSI_SSL_CERTIFICATE:
@@ -27,6 +25,8 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/applicationCollectionsDb:/var/lib/postgresql/data
   applicationRunsDb:
     deploy:
       restart_policy:
@@ -35,6 +35,8 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/applicationRunsDb:/var/lib/postgresql/data
   applicationcollections:
     depends_on:
     - applicationCollectionsDb
@@ -47,7 +49,7 @@ services:
       Hosting__VirtualDirectory: applicationCollections
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/applicationcollections:0.5.1
     networks:
     - databases
@@ -66,7 +68,7 @@ services:
       Hosting__VirtualDirectory: applicationRuns
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/applicationruns:0.5.4
     networks:
     - databases
@@ -85,7 +87,7 @@ services:
       Hosting__VirtualDirectory: applications
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/applications:0.5.1
     networks:
     - databases
@@ -100,6 +102,8 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/applicationsDb:/var/lib/postgresql/data
   comparisonengine:
     deploy:
       restart_policy:
@@ -127,8 +131,6 @@ services:
     networks:
     - front
     restart: always
-    secrets:
-    - ENGINE_SECRET
   gateway:
     deploy:
       restart_policy:
@@ -154,7 +156,7 @@ services:
     environment:
       Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
       Hosting__VirtualDirectory: identityServer
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/identityserver:0.1.2
     networks:
     - front
@@ -162,7 +164,6 @@ services:
     secrets:
     - ADMIN_PASSWORD
     - USER_PASSWORD
-    - ENGINE_SECRET
   imageStorageDb:
     deploy:
       restart_policy:
@@ -171,6 +172,8 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/imageStorageDb:/var/lib/postgresql/data
   imagestorage:
     depends_on:
     - imageStorageDb
@@ -182,7 +185,7 @@ services:
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: imageStorage
       IdentityProvider__Authority: http://identityserver/identityServer
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/imagestorage:0.2.5
     networks:
     - databases
@@ -201,7 +204,7 @@ services:
       Hosting__VirtualDirectory: licensing
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/licensing:0.1.0
     networks:
     - databases
@@ -216,6 +219,8 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/licensingDb:/var/lib/postgresql/data
   messagebroker:
     deploy:
       restart_policy:
@@ -274,6 +279,8 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/runAssignmentsDb:/var/lib/postgresql/data
   runHistoryDb:
     deploy:
       restart_policy:
@@ -282,6 +289,8 @@ services:
     networks:
     - databases
     restart: always
+    volumes:
+    - ${DB_ROOT}/runHistoryDb:/var/lib/postgresql/data
   runassignments:
     depends_on:
     - runAssignmentsDb
@@ -294,7 +303,7 @@ services:
       Hosting__VirtualDirectory: runAssignments
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/runassignments:0.1.3
     networks:
     - databases
@@ -313,7 +322,7 @@ services:
       Hosting__VirtualDirectory: runHistory
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '0.9.51'
+      Version__Number: '0.9.50'
     image: loginvsi2/runhistory:0.5.1
     networks:
     - databases

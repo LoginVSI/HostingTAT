@@ -47,7 +47,7 @@ services:
       Hosting__VirtualDirectory: applicationCollections
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/applicationcollections:dev
     networks:
     - databases
@@ -66,7 +66,7 @@ services:
       Hosting__VirtualDirectory: applicationRuns
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/applicationruns:dev
     networks:
     - databases
@@ -85,7 +85,7 @@ services:
       Hosting__VirtualDirectory: applications
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/applications:dev
     networks:
     - databases
@@ -154,7 +154,7 @@ services:
     environment:
       Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
       Hosting__VirtualDirectory: identityServer
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/identityserver:dev
     networks:
     - front
@@ -182,7 +182,7 @@ services:
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: imageStorage
       IdentityProvider__Authority: http://identityserver/identityServer
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/imagestorage:dev
     networks:
     - databases
@@ -201,7 +201,7 @@ services:
       Hosting__VirtualDirectory: licensing
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/licensing:dev
     networks:
     - databases
@@ -294,7 +294,7 @@ services:
       Hosting__VirtualDirectory: runAssignments
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/runassignments:dev
     networks:
     - databases
@@ -313,7 +313,7 @@ services:
       Hosting__VirtualDirectory: runHistory
       IdentityProvider__Authority: http://identityserver/identityServer
       MessageBroker__Hostname: messagebroker
-      Version__Number: '99.1.44'
+      Version__Number: '99.1.45'
     image: loginvsi2/runhistory:dev
     networks:
     - databases

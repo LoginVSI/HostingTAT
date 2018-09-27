@@ -10,8 +10,6 @@ secrets:
     external: true
   ENGINE_SECRET:
     external: true
-  LAUNCHER_SECRET:
-    external: true
   USER_PASSWORD:
     external: true
   VSI_SSL_CERTIFICATE:
@@ -21,33 +19,37 @@ secrets:
   VSI_SSL_CERTIFICATE_KEY_PASSWORD:
     external: true
 services:
-  accounts:
+  applicationcollections:
     depends_on:
     - identityserver
     - messagebroker
-    - accountsDb
+    - applicationcollectionsDb
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=accountsDb;Database=accounts;Username=postgres;
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=applicationcollectionsDb;Database=applicationCollections;Username=postgres;
       DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: accounts
+      Hosting__VirtualDirectory: applicationCollections
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/accounts:3.1.2
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/applicationcollections:1.1.2
     networks:
     - front
     - messaging
     - databases
     restart: always
-  accountsDb:
+  applicationcollectionsDb:
     deploy:
       restart_policy:
         condition: on-failure
@@ -56,7 +58,47 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/accountsDb:/var/lib/postgresql/data
+    - ${DB_ROOT}/applicationcollectionsDb:/var/lib/postgresql/data
+  applicationruns:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - applicationrunsDb
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=applicationrunsDb;Database=applicationRuns;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: applicationRuns
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/applicationruns:1.1.0
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  applicationrunsDb:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationrunsDb:/var/lib/postgresql/data
   applications:
     depends_on:
     - identityserver
@@ -66,7 +108,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      Appliance_Version: 'a015'
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
       DB__ConnectionString: Server=applicationsDb;Database=applications;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applications
@@ -75,9 +117,13 @@ services:
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/applications:3.1.2
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/applications:1.1.0
     networks:
     - front
     - messaging
@@ -93,6 +139,36 @@ services:
     restart: always
     volumes:
     - ${DB_ROOT}/applicationsDb:/var/lib/postgresql/data
+  comparisonengine:
+    depends_on:
+    - messagebroker
+    - identityserver
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 1
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__applicationCollectionsUrl: http://applicationcollections/applicationCollections
+      Services__applicationRunsUrl: http://applicationruns/applicationRuns
+      Services__applicationsUrl: http://applications/applications
+      Services__imageStorageUrl: http://imagestorage/imageStorage
+      Services__licensingUrl: http://licensing/licensing
+      Services__runAssignmentsUrl: http://runassignments/runAssignments
+      Services__runHistoryUrl: http://runhistory/runHistory
+    healthcheck:
+      interval: 1m
+      retries: 1
+      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
+      timeout: 2s
+    image: loginvsi2/comparisonengine:1.1.2
+    networks:
+    - front
+    - messaging
+    restart: always
   contentdelivery:
     depends_on:
     - identityserver
@@ -108,144 +184,32 @@ services:
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-    image: loginvsi/contentdelivery:3.1.10
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/content/zip/LoginATClient.zip || exit 1
+      timeout: 2s
+    image: loginvsi2/contentdelivery:1.1.0
     networks:
     - front
     - messaging
     restart: always
     secrets:
-    - LAUNCHER_SECRET
     - ENGINE_SECRET
-  dashboardapi:
-    depends_on:
-    - identityserver
-    - messagebroker
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Hosting__VirtualDirectory: dashboardApi
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      Services__EnvironmentsUrl: http://environments/environments
-      Services__SessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__VirtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/dashboardapi:3.1.4
-    networks:
-    - front
-    - messaging
-    restart: always
-  environments:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - environmentsDb
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=environmentsDb;Database=environments;Username=postgres;
-      DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: environments
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/environments:3.1.3
-    networks:
-    - front
-    - messaging
-    - databases
-    restart: always
-  environmentsDb:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: postgres:9
-    networks:
-    - databases
-    restart: always
-    volumes:
-    - ${DB_ROOT}/environmentsDb:/var/lib/postgresql/data
-  functionalevents:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - functionaleventsDb
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=functionaleventsDb;Database=functionalEvents;Username=postgres;
-      DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: functionalEvents
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/functionalevents:3.1.2
-    networks:
-    - front
-    - messaging
-    - databases
-    restart: always
-  functionaleventsDb:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: postgres:9
-    networks:
-    - databases
-    restart: always
-    volumes:
-    - ${DB_ROOT}/functionaleventsDb:/var/lib/postgresql/data
-  functionaleventsworker:
-    depends_on:
-    - messagebroker
-    - identityserver
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
-      Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
-      Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/functionaleventsworker:3.1.2
-    networks:
-    - front
-    - messaging
-    restart: always
   gateway:
     deploy:
       restart_policy:
         condition: on-failure
     environment:
       START_DELAY: 20
-    image: loginvsi/gateway_loginpi:3.1.4
+    healthcheck:
+      interval: 1m
+      retries: 5
+      start_period: 5m
+      test: wget --no-check-certificate -q http://localhost || exit 1
+      timeout: 2s
+    image: loginvsi2/gateway:1.1.0
     networks:
     - front
     - messaging
@@ -262,46 +226,56 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      Appliance_Version: 'a015'
+      Appliance_Version: 'a009'
       Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
       Hosting__VirtualDirectory: identityserver
-      Version__Number: '3.1.17'
-    image: loginvsi/identityserver:1.0.0
+      Version__Number: '1.1.24'
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 1m
+      test: curl -f http://localhost/identityserver/images/background.png || exit
+        1
+      timeout: 2s
+    image: loginvsi2/identityserver:1.1.0
     networks:
     - front
     restart: always
     secrets:
     - ADMIN_PASSWORD
     - USER_PASSWORD
-    - LAUNCHER_SECRET
     - ENGINE_SECRET
-  launchers:
+  imagestorage:
     depends_on:
     - identityserver
     - messagebroker
-    - launchersDb
+    - imagestorageDb
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=launchersDb;Database=launchers;Username=postgres;
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=imagestorageDb;Database=imageStorage;Username=postgres;
       DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: launchers
+      Hosting__VirtualDirectory: imageStorage
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/launchers:3.1.2
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/imagestorage:1.1.0
     networks:
     - front
     - messaging
     - databases
     restart: always
-  launchersDb:
+  imagestorageDb:
     deploy:
       restart_policy:
         condition: on-failure
@@ -310,7 +284,7 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/launchersDb:/var/lib/postgresql/data
+    - ${DB_ROOT}/imagestorageDb:/var/lib/postgresql/data
   licensing:
     depends_on:
     - identityserver
@@ -320,7 +294,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      Appliance_Version: 'a015'
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
       DB__ConnectionString: Server=licensingDb;Database=licensing;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: licensing
@@ -329,9 +303,13 @@ services:
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/licensing:3.1.1
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/licensing:1.1.0
     networks:
     - front
     - messaging
@@ -347,64 +325,6 @@ services:
     restart: always
     volumes:
     - ${DB_ROOT}/licensingDb:/var/lib/postgresql/data
-  licensingworker:
-    depends_on:
-    - messagebroker
-    - identityserver
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
-      Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
-      Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/licensingworker:3.1.0
-    networks:
-    - front
-    - messaging
-    restart: always
-  loginscheduleworker:
-    depends_on:
-    - messagebroker
-    - identityserver
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
-      Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
-      Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/loginscheduleworker:3.1.4
-    networks:
-    - front
-    - messaging
-    restart: always
   messagebroker:
     deploy:
       restart_policy:
@@ -416,115 +336,24 @@ services:
     restart: always
     volumes:
     - ${DB_ROOT}/messagebroker:/var/lib/rabbitmq/mnesia
-  notifications:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - notificationsDb
+  notificationshub:
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=notificationsDb;Database=notifications;Username=postgres;
-      DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: notifications
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/notifications:3.1.0
+      Hosting__VirtualDirectory: notificationsHub
+      IdentityProvider__Authority: http://identityserver/identityServer
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -sf http://localhost || test $$? -eq 22 && exit 0 || exit 1
+      timeout: 2s
+    image: loginvsi2/notificationshub:1.1.0
     networks:
     - front
-    - messaging
-    - databases
     restart: always
-  notificationsDb:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: postgres:9
-    networks:
-    - databases
-    restart: always
-    volumes:
-    - ${DB_ROOT}/notificationsDb:/var/lib/postgresql/data
-  reports:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - reportsDb
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=reportsDb;Database=reports;Username=postgres;
-      DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: reports
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/reports:3.1.2
-    networks:
-    - front
-    - messaging
-    - databases
-    restart: always
-  reportsDb:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: postgres:9
-    networks:
-    - databases
-    restart: always
-    volumes:
-    - ${DB_ROOT}/reportsDb:/var/lib/postgresql/data
-  reportschedules:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - reportschedulesDb
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=reportschedulesDb;Database=reportSchedules;Username=postgres;
-      DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: reportSchedules
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/reportschedules:3.1.1
-    networks:
-    - front
-    - messaging
-    - databases
-    restart: always
-  reportschedulesDb:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: postgres:9
-    networks:
-    - databases
-    restart: always
-    volumes:
-    - ${DB_ROOT}/reportschedulesDb:/var/lib/postgresql/data
-  reportsworker:
+  notificationsworker:
     depends_on:
     - messagebroker
     - identityserver
@@ -532,28 +361,29 @@ services:
       restart_policy:
         condition: on-failure
     environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 1
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__applicationCollectionsUrl: http://applicationcollections/applicationCollections
+      Services__applicationRunsUrl: http://applicationruns/applicationRuns
       Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
+      Services__imageStorageUrl: http://imagestorage/imageStorage
       Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/reportsworker:3.1.2
+      Services__runAssignmentsUrl: http://runassignments/runAssignments
+      Services__runHistoryUrl: http://runhistory/runHistory
+    healthcheck:
+      interval: 1m
+      retries: 1
+      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
+      timeout: 2s
+    image: loginvsi2/notificationsworker:1.1.0
     networks:
     - front
     - messaging
     restart: always
-  scriptworker:
+  propagationengine:
     depends_on:
     - messagebroker
     - identityserver
@@ -561,54 +391,56 @@ services:
       restart_policy:
         condition: on-failure
     environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 2
+      Hosting__VirtualDirectory: propagationEngine
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
-      Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
-      Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/scriptworker:3.1.2
+      Services__ApplicationRunsUrl: http://applicationruns
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__ImageStorageUrl: http://imagestorage
+      Services__LicensingUrl: http://licensing
+    healthcheck:
+      interval: 1m
+      retries: 1
+      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
+      timeout: 2s
+    image: loginvsi2/comparisonengine:1.1.2
     networks:
     - front
     - messaging
     restart: always
-  sessionrequests:
+  runassignments:
     depends_on:
     - identityserver
     - messagebroker
-    - sessionrequestsDb
+    - runassignmentsDb
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=sessionrequestsDb;Database=sessionRequests;Username=postgres;
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=runassignmentsDb;Database=runAssignments;Username=postgres;
       DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: sessionRequests
+      Hosting__VirtualDirectory: runAssignments
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/sessionrequests:3.1.6
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/runassignments:1.1.0
     networks:
     - front
     - messaging
     - databases
     restart: always
-  sessionrequestsDb:
+  runassignmentsDb:
     deploy:
       restart_policy:
         condition: on-failure
@@ -617,63 +449,38 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/sessionrequestsDb:/var/lib/postgresql/data
-  sessionworker:
+    - ${DB_ROOT}/runassignmentsDb:/var/lib/postgresql/data
+  runhistory:
     depends_on:
-    - messagebroker
     - identityserver
+    - messagebroker
+    - runhistoryDb
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
-      Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
-      Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/sessionworker:3.1.5
-    networks:
-    - front
-    - messaging
-    restart: always
-  statistics:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - statisticsDb
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=statisticsDb;Database=statistics;Username=postgres;
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=runhistoryDb;Database=runHistory;Username=postgres;
       DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: statistics
+      Hosting__VirtualDirectory: runHistory
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/statistics:3.1.1
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 5m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/runhistory:1.1.0
     networks:
     - front
     - messaging
     - databases
     restart: always
-  statisticsDb:
+  runhistoryDb:
     deploy:
       restart_policy:
         condition: on-failure
@@ -682,73 +489,24 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/statisticsDb:/var/lib/postgresql/data
-  statisticworker:
-    depends_on:
-    - messagebroker
-    - identityserver
+    - ${DB_ROOT}/runhistoryDb:/var/lib/postgresql/data
+  serverurls:
     deploy:
       restart_policy:
         condition: on-failure
     environment:
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
-      Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
-      Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/statisticworker:3.1.1
+      Hosting__VirtualDirectory: serverUrls
+    healthcheck:
+      interval: 1m
+      retries: 3
+      start_period: 1m
+      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
+      timeout: 2s
+    image: loginvsi2/serverurls:1.1.0
     networks:
     - front
-    - messaging
     restart: always
-  systemconfiguration:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - systemconfigurationDb
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=systemconfigurationDb;Database=systemConfiguration;Username=postgres;
-      DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: systemConfiguration
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/systemconfiguration:3.1.1
-    networks:
-    - front
-    - messaging
-    - databases
-    restart: always
-  systemconfigurationDb:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: postgres:9
-    networks:
-    - databases
-    restart: always
-    volumes:
-    - ${DB_ROOT}/systemconfigurationDb:/var/lib/postgresql/data
-  timeoutworker:
+  synchronizationworker:
     depends_on:
     - messagebroker
     - identityserver
@@ -756,23 +514,24 @@ services:
       restart_policy:
         condition: on-failure
     environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 1
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
-      Services__accountsUrl: http://accounts/accounts
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__applicationCollectionsUrl: http://applicationcollections/applicationCollections
+      Services__applicationRunsUrl: http://applicationruns/applicationRuns
       Services__applicationsUrl: http://applications/applications
-      Services__dashboardApiUrl: http://dashboardapi/dashboardApi
-      Services__environmentsUrl: http://environments/environments
-      Services__functionalEventsUrl: http://functionalevents/functionalEvents
-      Services__launchersUrl: http://launchers/launchers
+      Services__imageStorageUrl: http://imagestorage/imageStorage
       Services__licensingUrl: http://licensing/licensing
-      Services__notificationsUrl: http://notifications/notifications
-      Services__reportSchedulesUrl: http://reportschedules/reportSchedules
-      Services__reportsUrl: http://reports/reports
-      Services__sessionRequestsUrl: http://sessionrequests/sessionRequests
-      Services__statisticsUrl: http://statistics/statistics
-      Services__systemConfigurationUrl: http://systemconfiguration/systemConfiguration
-      Services__virtualUserResultsUrl: http://virtualuserresults/virtualUserResults
-    image: loginvsi/timeoutworker:3.1.6
+      Services__runAssignmentsUrl: http://runassignments/runAssignments
+      Services__runHistoryUrl: http://runhistory/runHistory
+    healthcheck:
+      interval: 1m
+      retries: 1
+      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
+      timeout: 2s
+    image: loginvsi2/synchronizationworker:1.1.0
     networks:
     - front
     - messaging
@@ -786,45 +545,9 @@ services:
       retries: 3
       test: wget -q http://localhost || exit 1
       timeout: 2s
-    image: loginvsi/ui_loginpi:3.1.6
+    image: loginvsi2/userinterface:1.1.1
     networks:
     - front
     restart: always
-  virtualuserresults:
-    depends_on:
-    - identityserver
-    - messagebroker
-    - virtualuserresultsDb
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      Appliance_Version: 'a015'
-      DB__ConnectionString: Server=virtualuserresultsDb;Database=virtualUserResults;Username=postgres;
-      DB__DbType: PostgreSQL
-      Hosting__VirtualDirectory: virtualUserResults
-      IdentityProvider__Authority: http://identityserver/identityserver
-      MessageBroker__Hostname: messagebroker
-      Retry__ConnectDelay: 10
-      Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-      SystemConfiguration__AllowUntrustedCertificates: "true"
-      Version__Number: '3.1.17'
-    image: loginvsi/virtualuserresults:3.1.4
-    networks:
-    - front
-    - messaging
-    - databases
-    restart: always
-  virtualuserresultsDb:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    image: postgres:9
-    networks:
-    - databases
-    restart: always
-    volumes:
-    - ${DB_ROOT}/virtualuserresultsDb:/var/lib/postgresql/data
 version: "3.4"
 

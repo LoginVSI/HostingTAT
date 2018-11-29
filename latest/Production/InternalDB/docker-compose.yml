@@ -1,0 +1,455 @@
+networks:
+  databases:
+    driver: overlay
+  front:
+    driver: overlay
+  messaging:
+    driver: overlay
+secrets:
+  ADMIN_PASSWORD:
+    external: true
+  ENGINE_SECRET:
+    external: true
+  USER_PASSWORD:
+    external: true
+  VSI_SSL_CERTIFICATE:
+    file: ${SSL_CERTIFICATE_PATH}
+  VSI_SSL_CERTIFICATE_KEY:
+    file: ${SSL_CERTIFICATE_KEY_PATH}
+  VSI_SSL_CERTIFICATE_KEY_PASSWORD:
+    external: true
+services:
+  applicationcollections:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - applicationcollectionsDb
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=applicationcollectionsDb;Database=ApplicationCollections;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: applicationCollections
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10  
+    image: loginvsi2/applicationcollections:1.1.2
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  applicationcollectionsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationCollectionsDb:/var/lib/postgresql/data
+  applicationruns:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - applicationrunsDb
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=applicationrunsDb;Database=ApplicationRuns;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: applicationRuns
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10   
+    image: loginvsi2/applicationruns:1.1.0
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  applicationrunsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationRunsDb:/var/lib/postgresql/data
+  applications:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - applicationsDb
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=applicationsDb;Database=Applications;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: applications
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10  
+    image: loginvsi2/applications:1.1.0
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  applicationsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationsDb:/var/lib/postgresql/data
+  comparisonengine:
+    depends_on:
+    - messagebroker
+    - identityserver
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 1
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__applicationCollectionsUrl: http://applicationcollections/applicationCollections
+      Services__applicationRunsUrl: http://applicationruns/applicationRuns
+      Services__applicationsUrl: http://applications/applications
+      Services__imageStorageUrl: http://imagestorage/imageStorage
+      Services__licensingUrl: http://licensing/licensing
+      Services__runAssignmentsUrl: http://runassignments/runAssignments
+      Services__runHistoryUrl: http://runhistory/runHistory  
+    image: loginvsi2/comparisonengine:1.1.2
+    networks:
+    - front
+    - messaging
+    restart: always
+  contentdelivery:
+    depends_on:
+    - identityserver
+    - messagebroker
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
+      Hosting__VirtualDirectory: contentDelivery
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10 
+    image: loginvsi2/contentdelivery:1.1.0
+    networks:
+    - front
+    - messaging
+    restart: always
+    secrets:
+    - ENGINE_SECRET
+  gateway:
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      START_DELAY: 20   
+    image: loginvsi2/gateway:1.1.0
+    networks:
+    - front
+    - messaging
+    ports:
+    - ${GATEWAY_PORT}:443
+    - 80:80
+    restart: always
+    secrets:
+    - VSI_SSL_CERTIFICATE
+    - VSI_SSL_CERTIFICATE_KEY
+    - VSI_SSL_CERTIFICATE_KEY_PASSWORD
+  identityserver:
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      Appliance_Version: 'a017'
+      Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
+      Hosting__VirtualDirectory: identityserver
+      Version__Number: '1.1.27'   
+    image: loginvsi2/identityserver:1.1.0
+    networks:
+    - front
+    restart: always
+    secrets:
+    - ADMIN_PASSWORD
+    - USER_PASSWORD
+    - ENGINE_SECRET
+  imagestorage:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - imagestorageDb
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=imagestorageDb;Database=ImageStorage;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: imageStorage
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10    
+    image: loginvsi2/imagestorage:1.1.0
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  imagestorageDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/imageStorageDb:/var/lib/postgresql/data
+  licensing:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - licensingDb
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=licensingDb;Database=Licensing;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: licensing
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10   
+    image: loginvsi2/licensing:1.1.0
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  licensingDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/licensingDb:/var/lib/postgresql/data
+  messagebroker:
+    deploy:
+      restart_policy:
+        condition: any
+    hostname: rabbitMQ-${COMPOSE_PROJECT_NAME}
+    image: rabbitmq:3.6.12-management
+    networks:
+    - messaging
+    restart: always
+    volumes:
+    - ${DB_ROOT}/messagebroker:/var/lib/rabbitmq/mnesia
+  notificationshub:
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      Hosting__VirtualDirectory: notificationsHub
+      IdentityProvider__Authority: http://identityserver/identityServer  
+    image: loginvsi2/notificationshub:1.1.0
+    networks:
+    - front
+    restart: always
+  notificationsworker:
+    depends_on:
+    - messagebroker
+    - identityserver
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 1
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__applicationCollectionsUrl: http://applicationcollections/applicationCollections
+      Services__applicationRunsUrl: http://applicationruns/applicationRuns
+      Services__applicationsUrl: http://applications/applications
+      Services__imageStorageUrl: http://imagestorage/imageStorage
+      Services__licensingUrl: http://licensing/licensing
+      Services__runAssignmentsUrl: http://runassignments/runAssignments
+      Services__runHistoryUrl: http://runhistory/runHistory   
+    image: loginvsi2/notificationsworker:1.1.0
+    networks:
+    - front
+    - messaging
+    restart: always
+  propagationengine:
+    depends_on:
+    - messagebroker
+    - identityserver
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 2
+      Hosting__VirtualDirectory: propagationEngine
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Services__ApplicationRunsUrl: http://applicationruns
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__ImageStorageUrl: http://imagestorage
+      Services__LicensingUrl: http://licensing   
+    image: loginvsi2/comparisonengine:1.1.2
+    networks:
+    - front
+    - messaging
+    restart: always
+  runassignments:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - runassignmentsDb
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=runassignmentsDb;Database=RunAssignments;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: runAssignments
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10
+    image: loginvsi2/runassignments:1.1.0
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  runassignmentsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/runAssignmentsDb:/var/lib/postgresql/data
+  runhistory:
+    depends_on:
+    - identityserver
+    - messagebroker
+    - runhistoryDb
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
+      DB__ConnectionString: Server=runhistoryDb;Database=RunHistory;Username=postgres;
+      DB__DbType: PostgreSQL
+      Hosting__VirtualDirectory: runHistory
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Retry__ConnectDelay: 10
+      Retry__MaxAttempts: 50
+      Retry__RetryDelay: 10   
+    image: loginvsi2/runhistory:1.1.0
+    networks:
+    - front
+    - messaging
+    - databases
+    restart: always
+  runhistoryDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/runHistoryDb:/var/lib/postgresql/data
+  serverurls:
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      Hosting__VirtualDirectory: serverUrls    
+    image: loginvsi2/serverurls:1.1.0
+    networks:
+    - front
+    restart: always
+  synchronizationworker:
+    depends_on:
+    - messagebroker
+    - identityserver
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      ComparisonEngine__MatchPercentageThreshold: 95
+      ComparisonEngine__OperationMode: 1
+      IdentityProvider__Authority: http://identityserver/identityserver
+      MessageBroker__Hostname: messagebroker
+      Services__HubUrl: ws://notificationshub/notificationsHub
+      Services__applicationCollectionsUrl: http://applicationcollections/applicationCollections
+      Services__applicationRunsUrl: http://applicationruns/applicationRuns
+      Services__applicationsUrl: http://applications/applications
+      Services__imageStorageUrl: http://imagestorage/imageStorage
+      Services__licensingUrl: http://licensing/licensing
+      Services__runAssignmentsUrl: http://runassignments/runAssignments
+      Services__runHistoryUrl: http://runhistory/runHistory
+    image: loginvsi2/synchronizationworker:1.1.0
+    networks:
+    - front
+    - messaging
+    restart: always
+  ui:
+    deploy:
+      restart_policy:
+        condition: any   
+    image: loginvsi2/userinterface:1.1.0
+    networks:
+    - front
+    restart: always
+version: "3.4"
+

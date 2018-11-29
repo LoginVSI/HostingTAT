@@ -58,7 +58,7 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/applicationcollectionsDb:/var/lib/postgresql/data
+    - ${DB_ROOT}/applicationCollectionsDb:/var/lib/postgresql/data
   applicationruns:
     depends_on:
     - identityserver
@@ -98,7 +98,7 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/applicationrunsDb:/var/lib/postgresql/data
+    - ${DB_ROOT}/applicationRunsDb:/var/lib/postgresql/data
   applications:
     depends_on:
     - identityserver
@@ -284,7 +284,7 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/imagestorageDb:/var/lib/postgresql/data
+    - ${DB_ROOT}/imageStorageDb:/var/lib/postgresql/data
   licensing:
     depends_on:
     - identityserver
@@ -449,7 +449,7 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/runassignmentsDb:/var/lib/postgresql/data
+    - ${DB_ROOT}/runAssignmentsDb:/var/lib/postgresql/data
   runhistory:
     depends_on:
     - identityserver
@@ -489,7 +489,7 @@ services:
     - databases
     restart: always
     volumes:
-    - ${DB_ROOT}/runhistoryDb:/var/lib/postgresql/data
+    - ${DB_ROOT}/runHistoryDb:/var/lib/postgresql/data
   serverurls:
     deploy:
       restart_policy:

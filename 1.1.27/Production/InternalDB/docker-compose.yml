@@ -26,23 +26,17 @@ services:
     - applicationcollectionsDb
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=applicationcollectionsDb;Database=applicationCollections;Username=postgres;
+      DB__ConnectionString: Server=applicationcollectionsDb;Database=ApplicationCollections;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applicationCollections
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
+      Retry__RetryDelay: 10  
     image: loginvsi2/applicationcollections:1.1.2
     networks:
     - front
@@ -52,7 +46,7 @@ services:
   applicationcollectionsDb:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     image: postgres:9
     networks:
     - databases
@@ -66,23 +60,17 @@ services:
     - applicationrunsDb
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=applicationrunsDb;Database=applicationRuns;Username=postgres;
+      DB__ConnectionString: Server=applicationrunsDb;Database=ApplicationRuns;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applicationRuns
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
+      Retry__RetryDelay: 10   
     image: loginvsi2/applicationruns:1.1.0
     networks:
     - front
@@ -92,7 +80,7 @@ services:
   applicationrunsDb:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     image: postgres:9
     networks:
     - databases
@@ -106,23 +94,17 @@ services:
     - applicationsDb
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=applicationsDb;Database=applications;Username=postgres;
+      DB__ConnectionString: Server=applicationsDb;Database=Applications;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applications
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
+      Retry__RetryDelay: 10  
     image: loginvsi2/applications:1.1.0
     networks:
     - front
@@ -132,7 +114,7 @@ services:
   applicationsDb:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     image: postgres:9
     networks:
     - databases
@@ -145,7 +127,7 @@ services:
     - identityserver
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       ComparisonEngine__MatchPercentageThreshold: 95
       ComparisonEngine__OperationMode: 1
@@ -158,12 +140,7 @@ services:
       Services__imageStorageUrl: http://imagestorage/imageStorage
       Services__licensingUrl: http://licensing/licensing
       Services__runAssignmentsUrl: http://runassignments/runAssignments
-      Services__runHistoryUrl: http://runhistory/runHistory
-    healthcheck:
-      interval: 1m
-      retries: 1
-      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
-      timeout: 2s
+      Services__runHistoryUrl: http://runhistory/runHistory  
     image: loginvsi2/comparisonengine:1.1.2
     networks:
     - front
@@ -175,7 +152,7 @@ services:
     - messagebroker
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
       Hosting__VirtualDirectory: contentDelivery
@@ -183,13 +160,7 @@ services:
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/content/zip/LoginATClient.zip || exit 1
-      timeout: 2s
+      Retry__RetryDelay: 10 
     image: loginvsi2/contentdelivery:1.1.0
     networks:
     - front
@@ -200,15 +171,9 @@ services:
   gateway:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
-      START_DELAY: 20
-    healthcheck:
-      interval: 1m
-      retries: 5
-      start_period: 5m
-      test: wget --no-check-certificate -q http://localhost || exit 1
-      timeout: 2s
+      START_DELAY: 20   
     image: loginvsi2/gateway:1.1.0
     networks:
     - front
@@ -224,19 +189,12 @@ services:
   identityserver:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       Appliance_Version: 'a017'
       Hosting__HostUrls: ${ALLOWED_CLIENT_URLS}
       Hosting__VirtualDirectory: identityserver
-      Version__Number: '1.1.27'
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 1m
-      test: curl -f http://localhost/identityserver/images/background.png || exit
-        1
-      timeout: 2s
+      Version__Number: '1.1.27'   
     image: loginvsi2/identityserver:1.1.0
     networks:
     - front
@@ -252,23 +210,17 @@ services:
     - imagestorageDb
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=imagestorageDb;Database=imageStorage;Username=postgres;
+      DB__ConnectionString: Server=imagestorageDb;Database=ImageStorage;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: imageStorage
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
+      Retry__RetryDelay: 10    
     image: loginvsi2/imagestorage:1.1.0
     networks:
     - front
@@ -278,7 +230,7 @@ services:
   imagestorageDb:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     image: postgres:9
     networks:
     - databases
@@ -292,23 +244,17 @@ services:
     - licensingDb
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=licensingDb;Database=licensing;Username=postgres;
+      DB__ConnectionString: Server=licensingDb;Database=Licensing;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: licensing
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
+      Retry__RetryDelay: 10   
     image: loginvsi2/licensing:1.1.0
     networks:
     - front
@@ -318,7 +264,7 @@ services:
   licensingDb:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     image: postgres:9
     networks:
     - databases
@@ -328,7 +274,7 @@ services:
   messagebroker:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     hostname: rabbitMQ-${COMPOSE_PROJECT_NAME}
     image: rabbitmq:3.6.12-management
     networks:
@@ -339,16 +285,10 @@ services:
   notificationshub:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       Hosting__VirtualDirectory: notificationsHub
-      IdentityProvider__Authority: http://identityserver/identityServer
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -sf http://localhost || test $$? -eq 22 && exit 0 || exit 1
-      timeout: 2s
+      IdentityProvider__Authority: http://identityserver/identityServer  
     image: loginvsi2/notificationshub:1.1.0
     networks:
     - front
@@ -359,7 +299,7 @@ services:
     - identityserver
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       ComparisonEngine__MatchPercentageThreshold: 95
       ComparisonEngine__OperationMode: 1
@@ -372,12 +312,7 @@ services:
       Services__imageStorageUrl: http://imagestorage/imageStorage
       Services__licensingUrl: http://licensing/licensing
       Services__runAssignmentsUrl: http://runassignments/runAssignments
-      Services__runHistoryUrl: http://runhistory/runHistory
-    healthcheck:
-      interval: 1m
-      retries: 1
-      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
-      timeout: 2s
+      Services__runHistoryUrl: http://runhistory/runHistory   
     image: loginvsi2/notificationsworker:1.1.0
     networks:
     - front
@@ -389,7 +324,7 @@ services:
     - identityserver
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       ComparisonEngine__MatchPercentageThreshold: 95
       ComparisonEngine__OperationMode: 2
@@ -399,12 +334,7 @@ services:
       Services__ApplicationRunsUrl: http://applicationruns
       Services__HubUrl: ws://notificationshub/notificationsHub
       Services__ImageStorageUrl: http://imagestorage
-      Services__LicensingUrl: http://licensing
-    healthcheck:
-      interval: 1m
-      retries: 1
-      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
-      timeout: 2s
+      Services__LicensingUrl: http://licensing   
     image: loginvsi2/comparisonengine:1.1.2
     networks:
     - front
@@ -417,10 +347,10 @@ services:
     - runassignmentsDb
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=runassignmentsDb;Database=runAssignments;Username=postgres;
+      DB__ConnectionString: Server=runassignmentsDb;Database=RunAssignments;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: runAssignments
       IdentityProvider__Authority: http://identityserver/identityserver
@@ -428,12 +358,6 @@ services:
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
       Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
     image: loginvsi2/runassignments:1.1.0
     networks:
     - front
@@ -443,7 +367,7 @@ services:
   runassignmentsDb:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     image: postgres:9
     networks:
     - databases
@@ -457,23 +381,17 @@ services:
     - runhistoryDb
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: Server=runhistoryDb;Database=runHistory;Username=postgres;
+      DB__ConnectionString: Server=runhistoryDb;Database=RunHistory;Username=postgres;
       DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: runHistory
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
       Retry__ConnectDelay: 10
       Retry__MaxAttempts: 50
-      Retry__RetryDelay: 10
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 5m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
+      Retry__RetryDelay: 10   
     image: loginvsi2/runhistory:1.1.0
     networks:
     - front
@@ -483,7 +401,7 @@ services:
   runhistoryDb:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     image: postgres:9
     networks:
     - databases
@@ -493,15 +411,9 @@ services:
   serverurls:
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
-      Hosting__VirtualDirectory: serverUrls
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 1m
-      test: curl -f http://localhost/swagger/v1/swagger.json || exit 1
-      timeout: 2s
+      Hosting__VirtualDirectory: serverUrls    
     image: loginvsi2/serverurls:1.1.0
     networks:
     - front
@@ -512,7 +424,7 @@ services:
     - identityserver
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: any
     environment:
       ComparisonEngine__MatchPercentageThreshold: 95
       ComparisonEngine__OperationMode: 1
@@ -526,11 +438,6 @@ services:
       Services__licensingUrl: http://licensing/licensing
       Services__runAssignmentsUrl: http://runassignments/runAssignments
       Services__runHistoryUrl: http://runhistory/runHistory
-    healthcheck:
-      interval: 1m
-      retries: 1
-      test: test $$(ps -o etimes= -p $$(pgrep dotnet)) -gt 30 && exit 0 ||  exit 1
-      timeout: 2s
     image: loginvsi2/synchronizationworker:1.1.0
     networks:
     - front
@@ -539,12 +446,7 @@ services:
   ui:
     deploy:
       restart_policy:
-        condition: on-failure
-    healthcheck:
-      interval: 1m
-      retries: 3
-      test: wget -q http://localhost || exit 1
-      timeout: 2s
+        condition: any   
     image: loginvsi2/userinterface:1.1.0
     networks:
     - front

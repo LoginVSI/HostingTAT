@@ -1,4 +1,6 @@
 networks:
+  databases:
+    driver: overlay
   front:
     driver: overlay
   messaging:
@@ -21,13 +23,14 @@ services:
     depends_on:
     - identityserver
     - messagebroker
+    - applicationcollectionsDb
     deploy:
       restart_policy:
         condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: ${CONNECTION_STRING};Database=ApplicationCollections;
-      DB__DbType: ${DB_TYPE}
+      DB__ConnectionString: Server=applicationcollectionsDb;Database=ApplicationCollections;Username=postgres;
+      DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applicationCollections
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
@@ -38,18 +41,30 @@ services:
     networks:
     - front
     - messaging
+    - databases
     restart: always
+  applicationcollectionsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationCollectionsDb:/var/lib/postgresql/data
   applicationruns:
     depends_on:
     - identityserver
     - messagebroker
+    - applicationrunsDb
     deploy:
       restart_policy:
         condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: ${CONNECTION_STRING};Database=ApplicationRuns;
-      DB__DbType: ${DB_TYPE}
+      DB__ConnectionString: Server=applicationrunsDb;Database=ApplicationRuns;Username=postgres;
+      DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applicationRuns
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
@@ -60,18 +75,30 @@ services:
     networks:
     - front
     - messaging
+    - databases
     restart: always
+  applicationrunsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationRunsDb:/var/lib/postgresql/data
   applications:
     depends_on:
     - identityserver
     - messagebroker
+    - applicationsDb
     deploy:
       restart_policy:
         condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: ${CONNECTION_STRING};Database=Applications;
-      DB__DbType: ${DB_TYPE}
+      DB__ConnectionString: Server=applicationsDb;Database=Applications;Username=postgres;
+      DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: applications
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
@@ -82,7 +109,18 @@ services:
     networks:
     - front
     - messaging
+    - databases
     restart: always
+  applicationsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/applicationsDb:/var/lib/postgresql/data
   comparisonengine:
     depends_on:
     - messagebroker
@@ -185,13 +223,14 @@ services:
     depends_on:
     - identityserver
     - messagebroker
+    - imagestorageDb
     deploy:
       restart_policy:
         condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: ${CONNECTION_STRING};Database=ImageStorage;
-      DB__DbType: ${DB_TYPE}
+      DB__ConnectionString: Server=imagestorageDb;Database=ImageStorage;Username=postgres;
+      DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: imageStorage
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
@@ -202,18 +241,30 @@ services:
     networks:
     - front
     - messaging
+    - databases
     restart: always
+  imagestorageDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/imageStorageDb:/var/lib/postgresql/data
   licensing:
     depends_on:
     - identityserver
     - messagebroker
+    - licensingDb
     deploy:
       restart_policy:
         condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: ${CONNECTION_STRING};Database=Licensing;
-      DB__DbType: ${DB_TYPE}
+      DB__ConnectionString: Server=licensingDb;Database=Licensing;Username=postgres;
+      DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: licensing
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
@@ -224,7 +275,18 @@ services:
     networks:
     - front
     - messaging
+    - databases
     restart: always
+  licensingDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/licensingDb:/var/lib/postgresql/data
   messagebroker:
     deploy:
       restart_policy:
@@ -298,13 +360,14 @@ services:
     depends_on:
     - identityserver
     - messagebroker
+    - runassignmentsDb
     deploy:
       restart_policy:
         condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: ${CONNECTION_STRING};Database=RunAssignments;
-      DB__DbType: ${DB_TYPE}
+      DB__ConnectionString: Server=runassignmentsDb;Database=RunAssignments;Username=postgres;
+      DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: runAssignments
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
@@ -315,18 +378,30 @@ services:
     networks:
     - front
     - messaging
+    - databases
     restart: always
+  runassignmentsDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/runAssignmentsDb:/var/lib/postgresql/data
   runhistory:
     depends_on:
     - identityserver
     - messagebroker
+    - runhistoryDb
     deploy:
       restart_policy:
         condition: any
     environment:
       CORS__AlternativeHostUrl: https://localhost.loginvsi.com:4200
-      DB__ConnectionString: ${CONNECTION_STRING};Database=RunHistory;
-      DB__DbType: ${DB_TYPE}
+      DB__ConnectionString: Server=runhistoryDb;Database=RunHistory;Username=postgres;
+      DB__DbType: PostgreSQL
       Hosting__VirtualDirectory: runHistory
       IdentityProvider__Authority: http://identityserver/identityserver
       MessageBroker__Hostname: messagebroker
@@ -337,7 +412,18 @@ services:
     networks:
     - front
     - messaging
+    - databases
     restart: always
+  runhistoryDb:
+    deploy:
+      restart_policy:
+        condition: any
+    image: postgres:9
+    networks:
+    - databases
+    restart: always
+    volumes:
+    - ${DB_ROOT}/runHistoryDb:/var/lib/postgresql/data
   serverurls:
     deploy:
       restart_policy:
